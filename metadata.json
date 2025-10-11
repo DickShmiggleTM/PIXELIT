@@ -1,0 +1,7 @@
+{
+  "name": "Pixelit",
+  "description": "An advanced application to create, edit, and export 2D pixel art. Features a manual grid editor with professional tools and AI-powered generation from text, audio, or image prompts. Includes animation and special effects modes, all wrapped in a nostalgic retro desktop UI.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
