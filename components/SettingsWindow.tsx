@@ -36,6 +36,7 @@ const SettingsWindow: React.FC<SettingsWindowProps> = ({ title, onClose, initial
                     case AIProvider.COHERE:
                     case AIProvider.OPENROUTER:
                     case AIProvider.OPENAI:
+                    case AIProvider.HUGGINGFACE:
                         providerError = "Failed to fetch models. Is the API key correct?"; break;
                 }
             }
@@ -75,7 +76,7 @@ const SettingsWindow: React.FC<SettingsWindowProps> = ({ title, onClose, initial
     // Fetch models on initial load or provider change
     useEffect(() => {
         handleFetchModels();
-    }, [settings.provider, settings.ollamaUrl, settings.geminiApiKeys, settings.mistralApiKeys, settings.cohereApiKeys, settings.openrouterApiKeys, settings.openaiApiKeys]);
+    }, [settings.provider, settings.ollamaUrl, settings.geminiApiKeys, settings.mistralApiKeys, settings.cohereApiKeys, settings.openrouterApiKeys, settings.openaiApiKeys, settings.huggingfaceApiKeys]);
 
     const handleSave = () => {
         onSave(settings);
@@ -194,6 +195,21 @@ const SettingsWindow: React.FC<SettingsWindowProps> = ({ title, onClose, initial
                     )}
                     {settings.provider === AIProvider.OPENAI && (
                         <ApiKeyManager provider={AIProvider.OPENAI} keys={settings.openaiApiKeys} onKeysChange={newKeys => setSettings(s => ({...s, openaiApiKeys: newKeys}))} />
+                    )}
+                    {settings.provider === AIProvider.HUGGINGFACE && (
+                        <>
+                            <ApiKeyManager provider={AIProvider.HUGGINGFACE} keys={settings.huggingfaceApiKeys} onKeysChange={newKeys => setSettings(s => ({...s, huggingfaceApiKeys: newKeys}))} />
+                            <div className="flex flex-col gap-1">
+                                <label>HuggingFace Inference Base URL:</label>
+                                <input
+                                    type="text"
+                                    value={settings.huggingfaceBaseUrl}
+                                    onChange={(e) => setSettings(prev => ({ ...prev, huggingfaceBaseUrl: e.target.value }))}
+                                    placeholder="https://api-inference.huggingface.co/models"
+                                    className="w-full p-1 bg-black/80 border border-cyan-400"
+                                />
+                            </div>
+                        </>
                     )}
                 </div>
 

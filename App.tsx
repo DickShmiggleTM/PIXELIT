@@ -1075,7 +1075,7 @@ const App: React.FC = () => {
                 <AiUpscalingWindow title={WindowType.AI_UPSCALE} onClose={() => handleCloseWindow(WindowType.AI_UPSCALE)} gridElementRef={gridElementRef} onUpscaleImage={aiService.upscaleImage} />
             )}
             {openWindows[WindowType.AI_SPRITE_SHEET] && (
-                <AiSpriteSheetWindow title={WindowType.AI_SPRITE_SHEET} onClose={() => handleCloseWindow(WindowType.AI_SPRITE_SHEET)} gridElementRef={gridElementRef} onGenerateSpriteSheet={aiService.generateSpriteSheet} />
+                <AiSpriteSheetWindow title={WindowType.AI_SPRITE_SHEET} onClose={() => handleCloseWindow(WindowType.AI_SPRITE_SHEET)} gridElementRef={gridElementRef} onEditSpriteSheet={aiService.editSpriteSheet} onGenerateDirectionalSpriteSheet={aiService.generateDirectionalSpriteSheet} />
             )}
              {openWindows[WindowType.FILTERS] && (
                 <FiltersWindow title={WindowType.FILTERS} onClose={() => handleCloseWindow(WindowType.FILTERS)} filters={filterSettings} onFiltersChange={setFilterSettings} onReset={() => setFilterSettings(initialFilterSettings)} onOpenWindow={handleOpenWindow} />
