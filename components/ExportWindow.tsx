@@ -10,6 +10,7 @@ import 'jszip';
 import 'gif.js';
 
 type ExportType = 'image' | 'gif' | 'sequence' | 'spritesheet';
+type SpriteSheetMetadataFormat = 'texturepacker-json' | 'godot-spriteframes';
 
 interface ExportWindowProps {
   title: string;
@@ -71,6 +72,7 @@ const ExportWindow: React.FC<ExportWindowProps> = ({ title, onClose, gridElement
     // Sprite Sheet State
     const [ssColumns, setSsColumns] = useState(Math.min(frames.length, 8));
     const [ssSpacing, setSsSpacing] = useState(0);
+    const [ssMetadataFormat, setSsMetadataFormat] = useState<SpriteSheetMetadataFormat>('texturepacker-json');
 
     useEffect(() => { setGifFps(fps) }, [fps]);
 
@@ -189,7 +191,7 @@ const ExportWindow: React.FC<ExportWindowProps> = ({ title, onClose, gridElement
             sheetCanvas.height = sheetHeight;
             const ctx = sheetCanvas.getContext('2d')!;
             
-            const jsonData = {
+            const texturePackerData = {
                 frames: {} as Record<string, any>,
                 meta: {
                     image: `${fileName}.png`,
@@ -210,7 +212,7 @@ const ExportWindow: React.FC<ExportWindowProps> = ({ title, onClose, gridElement
                 ctx.drawImage(frameCanvas, x, y);
 
                 const frameName = `${fileName}_${i}.png`;
-                jsonData.frames[frameName] = {
+                texturePackerData.frames[frameName] = {
                     frame: { x, y, w: width, h: height },
                     rotated: false,
                     trimmed: false,
@@ -224,7 +226,45 @@ const ExportWindow: React.FC<ExportWindowProps> = ({ title, onClose, gridElement
             const zip = new JSZip();
             const sheetBlob = await new Promise<Blob|null>(resolve => sheetCanvas.toBlob(resolve, 'image/png'));
             if(sheetBlob) zip.file(`${fileName}.png`, sheetBlob);
-            zip.file(`${fileName}.json`, JSON.stringify(jsonData, null, 2));
+
+            if (ssMetadataFormat === 'texturepacker-json') {
+                zip.file(`${fileName}.json`, JSON.stringify(texturePackerData, null, 2));
+            } else {
+                const framesTRES = Object.values(texturePackerData.frames).map((frameData, index) => {
+                    const id = `AtlasTexture_${index + 1}`;
+                    return {
+                        id,
+                        frame: frameData.frame,
+                    };
+                });
+
+                const atlasTextureSections = framesTRES.map(({ id, frame }) => {
+                    return `[sub_resource type="AtlasTexture" id="${id}"]\natlas = ExtResource("1")\nregion = Rect2(${frame.x}, ${frame.y}, ${frame.w}, ${frame.h})`;
+                }).join('\n\n');
+
+                const animationFrameEntries = framesTRES.map(({ id }) => {
+                    return `{
+"duration": 1.0,
+"texture": SubResource("${id}")
+}`;
+                }).join(',\n');
+
+                const godotSpriteFramesTRES = `[gd_resource type="SpriteFrames" load_steps=${framesTRES.length + 2} format=3]
+
+[ext_resource type="Texture2D" path="res://${fileName}.png" id="1"]
+
+${atlasTextureSections}
+
+[resource]
+animations = [{
+"frames": [${animationFrameEntries}],
+"loop": true,
+"name": &"default",
+"speed": ${fps}.0
+}]`;
+
+                zip.file(`${fileName}.tres`, godotSpriteFramesTRES);
+            }
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             const url = URL.createObjectURL(zipBlob);
@@ -280,7 +320,14 @@ const ExportWindow: React.FC<ExportWindowProps> = ({ title, onClose, gridElement
                             <label htmlFor="ss-space" className="block mb-1">Spacing ({ssSpacing}px):</label>
                             <input id="ss-space" type="range" min="0" max="16" value={ssSpacing} onChange={e => setSsSpacing(parseInt(e.target.value))} className="w-full"/>
                         </div>
-                         <p className='text-cyan-500 text-xs mt-1'>Exports a PNG sprite sheet and a JSON data file inside a ZIP.</p>
+                         <p className='text-cyan-500 text-xs mt-1'>Exports a PNG sprite sheet with selectable metadata format inside a ZIP.</p>
+                        <div>
+                            <label htmlFor="ss-meta" className="block mb-1 mt-1">Metadata Format:</label>
+                            <select id="ss-meta" value={ssMetadataFormat} onChange={e => setSsMetadataFormat(e.target.value as SpriteSheetMetadataFormat)} className="w-full bg-black/50 border-2 border-cyan-400 p-1">
+                                <option value="texturepacker-json">TexturePacker-style JSON</option>
+                                <option value="godot-spriteframes">Godot SpriteFrames (.tres)</option>
+                            </select>
+                        </div>
                     </div>
                 );
             default:
