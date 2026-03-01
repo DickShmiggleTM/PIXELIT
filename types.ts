@@ -37,6 +37,7 @@ export enum WindowType {
     AI_STYLE_TUNER = 'AI Style Tuner',
     AI_AUTO_SHADING = 'AI Auto-Shading',
     AI_LAYER_SEPARATION = 'AI Layer Separation',
+    SPRITE_LAB = 'Sprite Lab',
     SETTINGS = 'Settings',
     EXPORT = 'Export',
 }

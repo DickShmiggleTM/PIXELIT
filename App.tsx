@@ -31,6 +31,7 @@ import AchievementsWindow from './components/AchievementsWindow';
 import AchievementToast from './components/AchievementToast';
 import TutorialGuide from './components/TutorialGuide';
 import SettingsWindow from './components/SettingsWindow';
+import SpriteLabWindow from './components/SpriteLabWindow';
 
 // Types and Constants
 import { Tool, WindowType, Frame, Layer, BlendMode, GridType, VersionHistory, Commit, ProjectState, Asset, MacroAction, Macro, Script, Tutorial, UnlockedAchievement, Achievement, AchievementID, AISettings } from './types';
@@ -1161,6 +1162,9 @@ const App: React.FC = () => {
             )}
             {openWindows[WindowType.ACHIEVEMENTS] && (
                 <AchievementsWindow title={WindowType.ACHIEVEMENTS} onClose={() => handleCloseWindow(WindowType.ACHIEVEMENTS)} unlockedAchievements={unlockedAchievements} />
+            )}
+            {openWindows[WindowType.SPRITE_LAB] && (
+                <SpriteLabWindow title={WindowType.SPRITE_LAB} onClose={() => handleCloseWindow(WindowType.SPRITE_LAB)} />
             )}
             {openWindows[WindowType.SETTINGS] && (
                 <SettingsWindow

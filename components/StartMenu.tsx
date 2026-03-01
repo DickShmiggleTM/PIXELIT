@@ -46,6 +46,7 @@ const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onOpenWindow }) => {
             <MenuItem onClick={() => onOpenWindow(WindowType.AI_STYLE_TUNER)}>AI Style Tuner</MenuItem>
             <MenuItem onClick={() => onOpenWindow(WindowType.AI_AUTO_SHADING)}>AI Auto-Shading</MenuItem>
             <MenuItem onClick={() => onOpenWindow(WindowType.AI_LAYER_SEPARATION)}>AI Layer Separation</MenuItem>
+            <MenuItem onClick={() => onOpenWindow(WindowType.SPRITE_LAB)}>Sprite Lab</MenuItem>
             <div className="h-px bg-cyan-400/50 my-1"></div>
             <MenuItem onClick={() => onOpenWindow(WindowType.SETTINGS)}>Settings</MenuItem>
             <MenuItem onClick={() => onOpenWindow(WindowType.EXPORT)}>Export</MenuItem>
