@@ -79,6 +79,7 @@ export enum AIProvider {
     COHERE = 'Cohere',
     OPENROUTER = 'OpenRouter',
     OPENAI = 'OpenAI',
+    HUGGINGFACE = 'HuggingFace',
 }
 
 // --- Interfaces & Types ---
@@ -182,6 +183,8 @@ export interface AISettings {
     cohereApiKeys: string[];
     openrouterApiKeys: string[];
     openaiApiKeys: string[];
+    huggingfaceApiKeys: string[];
+    huggingfaceBaseUrl: string;
     models: {
         [key in AIProvider]: {
             text: string;

@@ -16,6 +16,8 @@ const defaultAISettings: AISettings = {
     cohereApiKeys: [],
     openrouterApiKeys: [],
     openaiApiKeys: [],
+    huggingfaceApiKeys: [],
+    huggingfaceBaseUrl: 'https://api-inference.huggingface.co/models',
     models: {
         [AIProvider.GEMINI]: {
             text: 'gemini-2.5-flash',
@@ -46,6 +48,11 @@ const defaultAISettings: AISettings = {
             text: 'gpt-4o-mini',
             image: 'gpt-4o-mini',
             vision: 'gpt-4o-mini',
+        },
+        [AIProvider.HUGGINGFACE]: {
+            text: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+            image: 'black-forest-labs/FLUX.1-dev',
+            vision: 'llava-hf/llava-1.5-7b-hf',
         }
     },
 };
@@ -175,6 +182,10 @@ export const loadAISettings = (): AISettings => {
             if (savedSettings.openaiApiKey) {
                 savedSettings.openaiApiKeys = Array.isArray(savedSettings.openaiApiKey) ? savedSettings.openaiApiKey : [savedSettings.openaiApiKey];
                 delete savedSettings.openaiApiKey;
+            }
+            if (savedSettings.huggingfaceApiKey) {
+                savedSettings.huggingfaceApiKeys = Array.isArray(savedSettings.huggingfaceApiKey) ? savedSettings.huggingfaceApiKey : [savedSettings.huggingfaceApiKey];
+                delete savedSettings.huggingfaceApiKey;
             }
 
 

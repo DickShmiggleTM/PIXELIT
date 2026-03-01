@@ -6,6 +6,7 @@ import * as mistralService from './mistralService';
 import * as cohereService from './cohereService';
 import * as openrouterService from './openrouterService';
 import * as openaiService from './openaiService';
+import * as huggingfaceService from './huggingfaceService';
 
 let settings: AISettings;
 
@@ -38,6 +39,10 @@ const initializeKeyStates = (s: AISettings) => {
         currentIndex: 0,
         errorCounts: Array(s.openaiApiKeys.length).fill(0),
     };
+    keyStates[AIProvider.HUGGINGFACE] = {
+        currentIndex: 0,
+        errorCounts: Array(s.huggingfaceApiKeys.length).fill(0),
+    };
 };
 
 const getApiKeyForProvider = (provider: AIProvider): string | undefined => {
@@ -50,6 +55,7 @@ const getApiKeyForProvider = (provider: AIProvider): string | undefined => {
     else if (provider === AIProvider.COHERE) keys = settings.cohereApiKeys;
     else if (provider === AIProvider.OPENROUTER) keys = settings.openrouterApiKeys;
     else if (provider === AIProvider.OPENAI) keys = settings.openaiApiKeys;
+    else if (provider === AIProvider.HUGGINGFACE) keys = settings.huggingfaceApiKeys;
 
     return keys[state.currentIndex];
 };
@@ -73,6 +79,7 @@ const reportErrorForProvider = (provider: AIProvider) => {
         else if (provider === AIProvider.COHERE) keys = settings.cohereApiKeys;
         else if (provider === AIProvider.OPENROUTER) keys = settings.openrouterApiKeys;
         else if (provider === AIProvider.OPENAI) keys = settings.openaiApiKeys;
+        else if (provider === AIProvider.HUGGINGFACE) keys = settings.huggingfaceApiKeys;
         
         if (keys.length > 1) {
             console.warn(`API key for ${provider} failed ${ERROR_THRESHOLD} times. Switching to the next key.`);
@@ -104,7 +111,7 @@ export const init = (newSettings: AISettings) => {
 // --- Service Functions ---
 
 export const listModels = async (): Promise<AiModel[]> => {
-    const apiKeyProviders = [AIProvider.GEMINI, AIProvider.MISTRAL, AIProvider.COHERE, AIProvider.OPENAI];
+    const apiKeyProviders = [AIProvider.GEMINI, AIProvider.MISTRAL, AIProvider.COHERE, AIProvider.OPENAI, AIProvider.HUGGINGFACE];
     const isApiKeyProvider = apiKeyProviders.includes(settings.provider);
 
     try {
@@ -124,6 +131,9 @@ export const listModels = async (): Promise<AiModel[]> => {
             case AIProvider.OPENAI: {
                 const apiKey = getApiKeyForProvider(AIProvider.OPENAI);
                 return await openaiService.listModels(apiKey || '');
+            }
+            case AIProvider.HUGGINGFACE: {
+                return await huggingfaceService.listModels(settings.models[AIProvider.HUGGINGFACE].image);
             }
             case AIProvider.GEMINI:
             default:
@@ -151,6 +161,8 @@ export const generatePixelArt = (
             return withErrorHandling(AIProvider.OPENROUTER, () => openrouterService.generatePixelArt(prompt, artMode, resolution, settings.models[AIProvider.OPENROUTER], getApiKeyForProvider(AIProvider.OPENROUTER)!, image, styleGuide));
         case AIProvider.OPENAI:
             return withErrorHandling(AIProvider.OPENAI, () => openaiService.generatePixelArt(prompt, artMode, resolution, settings.models[AIProvider.OPENAI], getApiKeyForProvider(AIProvider.OPENAI)!, image, styleGuide));
+        case AIProvider.HUGGINGFACE:
+            return withErrorHandling(AIProvider.HUGGINGFACE, () => huggingfaceService.generatePixelArt(prompt, artMode, resolution, settings.models[AIProvider.HUGGINGFACE].image, getApiKeyForProvider(AIProvider.HUGGINGFACE)!));
         case AIProvider.GEMINI:
         default:
              return withErrorHandling(AIProvider.GEMINI, () => geminiService.generatePixelArt(getApiKeyForProvider(AIProvider.GEMINI)!, prompt, artMode, resolution, settings.models[AIProvider.GEMINI], image, styleGuide));
@@ -169,6 +181,11 @@ export const getPromptSuggestions = (currentPrompt: string): Promise<string[] | 
             return withErrorHandling(AIProvider.OPENROUTER, () => openrouterService.getPromptSuggestions(currentPrompt, settings.models[AIProvider.OPENROUTER].text, getApiKeyForProvider(AIProvider.OPENROUTER)!));
         case AIProvider.OPENAI:
             return withErrorHandling(AIProvider.OPENAI, () => openaiService.getPromptSuggestions(currentPrompt, settings.models[AIProvider.OPENAI].text, getApiKeyForProvider(AIProvider.OPENAI)!));
+        case AIProvider.HUGGINGFACE:
+            return withErrorHandling(AIProvider.HUGGINGFACE, async () => {
+                const suggestionText = await huggingfaceService.sendChatMessage(getApiKeyForProvider(AIProvider.HUGGINGFACE)!, settings.models[AIProvider.HUGGINGFACE].text, `Suggest 5 concise prompt ideas for: ${currentPrompt}. Return one per line.`);
+                return suggestionText ? suggestionText.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 5) : null;
+            });
         case AIProvider.GEMINI:
         default:
             return withErrorHandling(AIProvider.GEMINI, () => geminiService.getPromptSuggestions(getApiKeyForProvider(AIProvider.GEMINI)!, currentPrompt, settings.models[AIProvider.GEMINI].text));
@@ -223,6 +240,8 @@ export const upscaleImage = (base64ImageData: string, scaleFactor: number): Prom
             return withErrorHandling(AIProvider.OPENROUTER, () => openrouterService.upscaleImage(base64ImageData, scaleFactor, settings.models[AIProvider.OPENROUTER].vision, getApiKeyForProvider(AIProvider.OPENROUTER)!));
         case AIProvider.OPENAI:
             return withErrorHandling(AIProvider.OPENAI, () => openaiService.upscaleImage(base64ImageData, scaleFactor, settings.models[AIProvider.OPENAI].vision, getApiKeyForProvider(AIProvider.OPENAI)!));
+        case AIProvider.HUGGINGFACE:
+            return withErrorHandling(AIProvider.HUGGINGFACE, () => huggingfaceService.editSpriteSheet(base64ImageData, `Upscale this sprite by ${scaleFactor}x while preserving pixel-perfect edges.`, settings.models[AIProvider.HUGGINGFACE].image, getApiKeyForProvider(AIProvider.HUGGINGFACE)!));
         case AIProvider.GEMINI:
         default:
             return withErrorHandling(AIProvider.GEMINI, () => geminiService.upscaleImage(getApiKeyForProvider(AIProvider.GEMINI)!, base64ImageData, scaleFactor, settings.models[AIProvider.GEMINI].vision));
@@ -241,9 +260,36 @@ export const generateSpriteSheet = (base64ImageData: string, prompt: string): Pr
             return withErrorHandling(AIProvider.OPENROUTER, () => openrouterService.generateSpriteSheet(base64ImageData, prompt, settings.models[AIProvider.OPENROUTER].vision, getApiKeyForProvider(AIProvider.OPENROUTER)!));
         case AIProvider.OPENAI:
             return withErrorHandling(AIProvider.OPENAI, () => openaiService.generateSpriteSheet(base64ImageData, prompt, settings.models[AIProvider.OPENAI].vision, getApiKeyForProvider(AIProvider.OPENAI)!));
+        case AIProvider.HUGGINGFACE:
+            return withErrorHandling(AIProvider.HUGGINGFACE, () => huggingfaceService.generateSpriteSheet(base64ImageData, prompt, settings.models[AIProvider.HUGGINGFACE].image, getApiKeyForProvider(AIProvider.HUGGINGFACE)!));
         case AIProvider.GEMINI:
         default:
             return withErrorHandling(AIProvider.GEMINI, () => geminiService.generateSpriteSheet(getApiKeyForProvider(AIProvider.GEMINI)!, base64ImageData, prompt, settings.models[AIProvider.GEMINI].vision));
+    }
+};
+
+export const editSpriteSheet = (base64ImageData: string, prompt: string): Promise<string | null> => {
+    const editPrompt = `Edit this sprite or sprite sheet based on instruction: ${prompt}`;
+    switch (settings.provider) {
+        case AIProvider.HUGGINGFACE:
+            return withErrorHandling(AIProvider.HUGGINGFACE, () => huggingfaceService.editSpriteSheet(base64ImageData, editPrompt, settings.models[AIProvider.HUGGINGFACE].image, getApiKeyForProvider(AIProvider.HUGGINGFACE)!));
+        default:
+            return generateSpriteSheet(base64ImageData, editPrompt);
+    }
+};
+
+export const generateDirectionalSpriteSheet = (
+    base64ImageData: string,
+    prompt: string,
+    directions: 4 | 8,
+    framesPerDirection: number
+): Promise<string | null> => {
+    const directionalPrompt = `Generate a ${directions}-direction sprite sheet with ${framesPerDirection} frames per direction. ${prompt}`;
+    switch (settings.provider) {
+        case AIProvider.HUGGINGFACE:
+            return withErrorHandling(AIProvider.HUGGINGFACE, () => huggingfaceService.generateDirectionalSpriteSheet(base64ImageData, prompt, directions, framesPerDirection, settings.models[AIProvider.HUGGINGFACE].image, getApiKeyForProvider(AIProvider.HUGGINGFACE)!));
+        default:
+            return generateSpriteSheet(base64ImageData, directionalPrompt);
     }
 };
 
